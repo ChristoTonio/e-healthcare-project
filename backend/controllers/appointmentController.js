@@ -1,6 +1,8 @@
 const Appointment = require('../models/Appointment');
 const User = require('../models/User');
 const Doctor = require('../models/Doctor');
+const { createZoomMeeting } = require('../services/zoomService'); // Import Zoom function
+
 
 // 📌 Create a new appointment
 exports.createAppointment = async (req, res) => {
@@ -60,21 +62,34 @@ exports.getAppointmentsByDoctor = async (req, res) => {
     }
 };
 
-// 📌 Update an appointment status
+// 📌 Update an appointment status (Generate Zoom Meeting if accepted)
 exports.updateAppointmentStatus = async (req, res) => {
     try {
         const { status } = req.body;
-        const appointment = await Appointment.findById(req.params.appointmentId);
+        const appointment = await Appointment.findById(req.params.appointmentId).populate('doctor', 'name email');
 
         if (!appointment) {
             return res.status(404).json({ message: "Appointment not found" });
         }
 
         appointment.status = status;
-        await appointment.save();
 
-        res.status(200).json({ message: "Appointment status updated successfully", appointment });
+        // If appointment is accepted, create a Zoom meeting
+        if (status === 'Accepted') {
+            const doctorName = appointment.doctor.name;
+            const meetingResponse = await createZoomMeeting(doctorName);
+
+            if (meetingResponse.join_url) {
+                appointment.zoomLink = meetingResponse.join_url; // Store Zoom link in database
+            } else {
+                return res.status(500).json({ message: "Failed to create Zoom meeting" });
+            }
+        }
+
+        await appointment.save();
+        res.status(200).json({ message: "Appointment status updated", appointment });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: "Error updating status", error: error.message });
     }
 };

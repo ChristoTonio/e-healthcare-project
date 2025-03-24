@@ -4,10 +4,9 @@ const appointmentSchema = new mongoose.Schema({
     patient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     doctor: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', required: true },
     date: { type: Date, required: true },
-    status: { type: String, enum: ['Scheduled', 'Completed', 'Cancelled'], default: 'Scheduled' },
-    reason: { type: String, required: true }
+    reason: { type: String },
+    status: { type: String, enum: ['Pending', 'Accepted', 'Cancelled'], default: 'Pending' },
+    zoomLink: { type: String } // New field to store Zoom meeting link
 }, { timestamps: true });
 
-const Appointment = mongoose.model('Appointment', appointmentSchema);
-
-module.exports = Appointment;
+module.exports = mongoose.model('Appointment', appointmentSchema);
