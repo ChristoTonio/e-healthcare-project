@@ -7,9 +7,17 @@ const ZOOM_CLIENT_ID = process.env.ZOOM_CLIENT_ID;
 const ZOOM_CLIENT_SECRET = process.env.ZOOM_CLIENT_SECRET;
 const ZOOM_BASE_URL = process.env.ZOOM_BASE_URL;
 
+let cachedAccessToken = null; // Store token globally to prevent unnecessary API calls
+let tokenExpiry = null; // Store expiry time
+
 // Function to get Zoom OAuth Access Token
 const getZoomAccessToken = async () => {
     try {
+        // Check if token is still valid
+        if (cachedAccessToken && tokenExpiry && Date.now() < tokenExpiry) {
+            return cachedAccessToken;
+        }
+
         const tokenResponse = await axios.post(
             `https://zoom.us/oauth/token`,
             qs.stringify({ grant_type: 'account_credentials', account_id: ZOOM_ACCOUNT_ID }),
@@ -21,7 +29,10 @@ const getZoomAccessToken = async () => {
             }
         );
 
-        return tokenResponse.data.access_token;
+        cachedAccessToken = tokenResponse.data.access_token;
+        tokenExpiry = Date.now() + tokenResponse.data.expires_in * 1000; // Convert to milliseconds
+
+        return cachedAccessToken;
     } catch (error) {
         console.error("Error fetching Zoom access token:", error.response?.data || error.message);
         return null;
@@ -40,9 +51,9 @@ const createZoomMeeting = async (hostName) => {
             `${ZOOM_BASE_URL}/users/me/meetings`,
             {
                 topic: `Consultation with ${hostName}`,
-                type: 2, // Scheduled meeting
+                type: 2,
                 start_time: new Date().toISOString(),
-                duration: 30, // 30-minute consultation
+                duration: 30, 
                 timezone: "Asia/Kuala_Lumpur",
                 agenda: "Patient Consultation",
                 settings: {
@@ -69,3 +80,4 @@ const createZoomMeeting = async (hostName) => {
 };
 
 module.exports = { createZoomMeeting };
+

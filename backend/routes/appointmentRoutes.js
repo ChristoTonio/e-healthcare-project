@@ -16,7 +16,7 @@ router.get('/patient/:patientId', protect, getAppointmentsByPatient);
 router.get('/doctor/:doctorId', protect, getAppointmentsByDoctor);
 
 // 📌 Update appointment status
-router.put('/update/:appointmentId', protect, updateAppointmentStatus);
+router.put('/update-status/:appointmentId', protect, updateAppointmentStatus);
 
 // 📌 Delete an appointment
 router.delete('/delete/:appointmentId', protect, deleteAppointment);

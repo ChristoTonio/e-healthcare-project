@@ -1,59 +1,84 @@
-const User = require('../models/User');  
+const User = require('../models/User');
+const Doctor = require('../models/Doctor');  // ✅ Import Doctor Model
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
-// Register User
+// 📌 Register a User (Patient)
 const registerUser = async (req, res) => {
     try {
         const { name, email, password, phone } = req.body;
 
-        // Check if the email already exists
+        // Check if email already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ message: "Email already in use" });
         }
 
-        // Hash password before saving
+        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
-        
-        // Create new user
+
+        // Create new User (Patient)
         const newUser = new User({ name, email, password: hashedPassword, phone });
         await newUser.save();
 
-        res.status(201).json({ message: "User registered successfully" });
+        res.status(201).json({ message: "Patient registered successfully" });
     } catch (error) {
         res.status(500).json({ message: "Error registering user", error });
     }
 };
 
-// Login User
-const loginUser = async (req, res) => {
+// 📌 Register a Doctor
+const registerDoctor = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { name, email, password, phone, specialization, experience } = req.body;
 
-        console.log("🔍 Checking email:", email);
-
-        // Find user
-        const user = await User.findOne({ email });
-
-        console.log("✅ User found:", user);
-
-        if (!user) {
-            return res.status(404).json({ message: "User not found in database" });
+        // Check if email already exists
+        const existingDoctor = await Doctor.findOne({ email });
+        if (existingDoctor) {
+            return res.status(400).json({ message: "Doctor email already in use" });
         }
 
-        // Validate password
-        const isMatch = await bcrypt.compare(password, user.password);
-        console.log("🔐 Password match:", isMatch);
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Create new Doctor
+        const newDoctor = new Doctor({
+            name, email, password: hashedPassword, phone, specialization, experience
+        });
+        await newDoctor.save();
+
+        res.status(201).json({ message: "Doctor registered successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Error registering doctor", error });
+    }
+};
+
+// 📌 Login for both User and Doctor
+const login = async (req, res) => {
+    try {
+        const { email, password, role } = req.body;
+
+        let user;
+        if (role === "patient") {
+            user = await User.findOne({ email });
+        } else {
+            user = await Doctor.findOne({ email });
+        }
+
+        if (!user) {
+            return res.status(404).json({ message: "User/Doctor not found" });
+        }
+
+        // Check password
+        const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
         // Generate token
         const token = jwt.sign(
-            { id: user._id, role: user.role },
+            { id: user._id, role },
             process.env.JWT_SECRET,
             { expiresIn: "1d" }
         );
@@ -62,27 +87,34 @@ const loginUser = async (req, res) => {
             _id: user._id,
             name: user.name,
             email: user.email,
-            role: user.role,
+            role,
             token
         });
     } catch (error) {
-        console.error("🚨 Login error:", error);
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({ message: "Server error", error });
     }
 };
 
-// Get User Profile
-const getUserProfile = async (req, res) => {
+// 📌 Get Profile (for both patients and doctors)
+const getProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select('-password');
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+        const { role } = req.user;
+
+        let user;
+        if (role === "doctor") {
+            user = await Doctor.findById(req.user.id).select('-password');
+        } else {
+            user = await User.findById(req.user.id).select('-password');
         }
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
         res.json(user);
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        res.status(500).json({ message: "Server error", error });
     }
 };
 
-// ✅ Export Functions
-module.exports = { registerUser, loginUser, getUserProfile };
+module.exports = { registerUser, registerDoctor, login, getProfile };

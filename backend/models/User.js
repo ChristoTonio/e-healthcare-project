@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
     phone: { type: String },
     role: { 
         type: String, 
-        enum: ['patient', 'doctor', 'admin'],  // ✅ Define allowed roles
+        enum: ['patient'],  // ✅ Define allowed roles
         default: 'patient' // ✅ Default role is 'patient'
     }
 }, { timestamps: true });
