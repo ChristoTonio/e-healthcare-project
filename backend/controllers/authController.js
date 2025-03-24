@@ -1,4 +1,4 @@
-const User = require('../models/User');  // Capital U
+const User = require('../models/User');  
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
@@ -29,27 +29,52 @@ const registerUser = async (req, res) => {
 
 // Login User
 const loginUser = async (req, res) => {
-    const { email, password } = req.body;
-
     try {
+        const { email, password } = req.body;
+
+        console.log("🔍 Checking email:", email);
+
+        // Find user
         const user = await User.findOne({ email });
-        if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
+        console.log("✅ User found:", user);
+
+        if (!user) {
+            return res.status(404).json({ message: "User not found in database" });
+        }
+
+        // Validate password
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+        console.log("🔐 Password match:", isMatch);
 
-        const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token, user });
+        if (!isMatch) {
+            return res.status(401).json({ message: "Invalid credentials" });
+        }
 
+        // Generate token
+        const token = jwt.sign(
+            { id: user._id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+        );
+
+        res.json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            token
+        });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        console.error("🚨 Login error:", error);
+        res.status(500).json({ message: "Server error" });
     }
 };
 
 // Get User Profile
 const getUserProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user.userId).select('-password');
+        const user = await User.findById(req.user.id).select('-password');
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -59,5 +84,5 @@ const getUserProfile = async (req, res) => {
     }
 };
 
-// ✅ Correctly export all functions
+// ✅ Export Functions
 module.exports = { registerUser, loginUser, getUserProfile };

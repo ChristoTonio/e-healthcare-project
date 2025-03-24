@@ -1,11 +1,9 @@
-const express = require('express');
-const authMiddleware = require('../middleware/authMiddleware');
+const express = require("express");
+const { protect } = require("../middleware/authMiddleware"); // ✅ Import middleware
+const { getDoctorDashboard } = require("../controllers/doctorController"); // ✅ Import controller
 
 const router = express.Router();
 
-// Protected route
-router.get('/dashboard', authMiddleware, (req, res) => {
-    res.json({ message: 'Welcome to the doctor dashboard', user: req.user });
-});
+router.get("/dashboard", protect, getDoctorDashboard); // ✅ Correct route setup
 
 module.exports = router;
