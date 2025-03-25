@@ -22,7 +22,7 @@ exports.createAppointment = async (req, res) => {
             doctor: doctorId,
             date,
             reason,
-            status: "pending",  // ✅ Default to 'pending'
+            status: "Pending",  // ✅ Default to 'pending'
             zoomLink: null       // ✅ No Zoom link yet
         });
 

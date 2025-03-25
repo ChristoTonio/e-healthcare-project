@@ -57,16 +57,20 @@ const registerDoctor = async (req, res) => {
 // 📌 Login for both User and Doctor
 const login = async (req, res) => {
     try {
-        const { email, password, role } = req.body;
+        const { email, password } = req.body;
+        console.log("Login Attempt:", { email }); // Debugging
 
-        let user;
-        if (role === "patient") {
-            user = await User.findOne({ email });
-        } else {
+        // Try to find user in both collections
+        let user = await User.findOne({ email });
+        let role = "patient"; // Default role
+
+        if (!user) {
             user = await Doctor.findOne({ email });
+            role = "doctor";
         }
 
         if (!user) {
+            console.log("User/Doctor not found in DB"); // Debugging
             return res.status(404).json({ message: "User/Doctor not found" });
         }
 
@@ -76,7 +80,7 @@ const login = async (req, res) => {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        // Generate token
+        // Generate token with the actual role from DB
         const token = jwt.sign(
             { id: user._id, role },
             process.env.JWT_SECRET,
@@ -91,9 +95,12 @@ const login = async (req, res) => {
             token
         });
     } catch (error) {
+        console.error("Login Error:", error); // Debugging
         res.status(500).json({ message: "Server error", error });
     }
 };
+
+
 
 // 📌 Get Profile (for both patients and doctors)
 const getProfile = async (req, res) => {
